@@ -1,67 +1,84 @@
 import 'gridstack/dist/gridstack.min.css';
-import React, { useEffect } from 'react';
+import ReactDOM from 'react-dom';
+import React, { useEffect, useState } from 'react';
 import { GridStack } from 'gridstack';
 import { FC } from "react";
-import Calculator from '@/components/Dashboard/calculator';
+import Calculator from '@/components/widgets/calculator';
 import { Button } from "@/components/ui/button"
-import {
-  Drawer,
-  DrawerClose,
-  DrawerContent,
-  DrawerDescription,
-  DrawerFooter,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerTrigger,
-} from "@/components/ui/drawer"
- 
-
+import { Drawer, DrawerClose, DrawerContent, DrawerDescription, DrawerFooter, DrawerHeader, DrawerTitle, DrawerTrigger, } from "@/components/ui/drawer"
+import { Card, CardContent } from "@/components/ui/card"
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious, } from "@/components/ui/carousel"
+import ChatComponent from '@/components/widgets/llmchat';
 
 export const Dashboard: FC = () => {
+  const [grid, setGrid] = useState<GridStack | null>(null);
+  const [carouselIndex, setCarouselIndex] = useState(0);
+
   useEffect(() => {
-    const grid = GridStack.init();
-    const drawerGrid = GridStack.init();
+    setGrid(GridStack.init());
   }, []);
+
+  const handleAddWidget = (index: number) => {
+    console.log("Attempting to add widget at index:", index);
+    const el = document.createElement('div');
+    el.className = 'grid-stack-item';
+    const contentEl = document.createElement('div');
+    contentEl.className = 'grid-stack-item-content';
+    el.appendChild(contentEl);
+    // Render the calculator widget only if the current carousel index matches the specified index
+    if (carouselIndex === index) {
+      ReactDOM.render(<Calculator />, contentEl);
+    } else {
+      // Render a placeholder or other content if the index doesn't match
+      ReactDOM.render(<div>Placeholder</div>, contentEl);
+    }
+    grid?.addWidget(el, { w: 3, h: 3 });
+    console.log("Widget added");
+  };
 
   return (
     <div>
-      <div className="grid-stack" style={{ background: 'transparent', outline: '2px solid rgba(255, 255, 255, 0.2)', borderRadius: '16px' }}>
-        <div className="grid-stack-item" gs-w="3" gs-h="3" gs-min-w="3" gs-min-h="3"> 
-          <div 
-            className="grid-stack-item-content" 
-            style={{
-              backgroundColor: 'transparent',
-              borderRadius: '8px',
-              display: 'flex', // Use Flexbox
-              justifyContent: 'center', // Center horizontally
-              alignItems: 'center', // Center vertically
-            }}>
-            <Calculator />
-          </div>
-        </div>
+      <div className="grid-stack" style={{ background: 'transparent', borderRadius: '16px' }}>
       </div>
-
       <Drawer>
-      <DrawerTrigger asChild>
-        <Button variant="outline">Open Drawer</Button>
-      </DrawerTrigger>
-      <DrawerContent>
-  <div className="mx-auto w-full">
-    <DrawerHeader>
-      <DrawerTitle>Widgets</DrawerTitle>
-      <DrawerDescription>Drag widgets into the dashboard.</DrawerDescription>
-    </DrawerHeader>
-    <div style={{ background: 'transparent', outline: '2px solid rgba(255, 255, 255, 0.2)', borderRadius: '16px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-      <Calculator />
-    </div>
-    <DrawerFooter>
-      <DrawerClose asChild>
-        <Button variant="outline">Cancel</Button>
-      </DrawerClose>
-    </DrawerFooter>
-  </div>
-</DrawerContent>
-    </Drawer>
+        <DrawerTrigger asChild>
+          <Button variant="outline">Open Drawer</Button>
+        </DrawerTrigger>
+        <DrawerContent>
+          <div className="mx-auto w-full max-w-sm">
+            <DrawerHeader>
+              <DrawerTitle>Widgets</DrawerTitle>
+              <DrawerDescription>Insert new widgets.</DrawerDescription>
+            </DrawerHeader>
+            <div className="flex items-center justify-center">
+              <Carousel className="w-full max-w-xs">
+                <CarouselContent>
+                  {Array.from({ length: 5 }).map((_, index) => (
+                    <CarouselItem key={index} onClick={() => setCarouselIndex(index)}>
+                      <div className="p-1">
+                        <Card>
+                          <CardContent className="flex aspect-square items-center justify-center p-6">
+                            {index === 2 ? <Calculator /> : <span className="text-4xl font-semibold">{index + 1}</span>}
+                          </CardContent>
+                        </Card>
+                      </div>
+                    </CarouselItem>
+                  ))}
+                </CarouselContent>
+                <CarouselPrevious />
+                <CarouselNext />
+              </Carousel>
+            </div>
+            <DrawerFooter>
+              <Button onClick={() => handleAddWidget(2)}>Add Widget</Button>
+              <DrawerClose asChild>
+                <Button variant="outline">Cancel</Button>
+              </DrawerClose>
+            </DrawerFooter>
+          </div>
+        </DrawerContent>
+      </Drawer>
+      <ChatComponent apiKey="YOUR_API_KEY_HERE" />
     </div>
   );
 };

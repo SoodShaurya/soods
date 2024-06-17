@@ -37,7 +37,7 @@ const Calculator: React.FC = () => {
 
   return (
     <div className="flex flex-col items-center">
-      <div className="w-64">
+      <div className="m-2">
         <Input
           value={expression}
           onChange={handleInputChange}

@@ -11,6 +11,7 @@ const FluidCanvas: React.FC = () => {
   const simSceneRef = useRef<THREE.Scene | null>(null);
   const cameraRef = useRef<THREE.OrthographicCamera | null>(null);
   const mouseRef = useRef(new THREE.Vector4(0, 0, 0, 0)); // x, y, isMouseDown (z), notUsed (w)
+  const prevMouseRef = useRef(new THREE.Vector2(0, 0)); // Store previous x, y for interpolation
   const frameRef = useRef(0);
   const rtaRef = useRef<THREE.WebGLRenderTarget | null>(null);
   const rtbRef = useRef<THREE.WebGLRenderTarget | null>(null);
@@ -71,8 +72,12 @@ const FluidCanvas: React.FC = () => {
     let simWidth = window.innerWidth * dpr;
     let simHeight = window.innerHeight * dpr;
     
+    // Initialize mouse and prevMouse to center for initial state
     mouseRef.current.x = simWidth / 2;
     mouseRef.current.y = simHeight / 2;
+    prevMouseRef.current.x = simWidth / 2;
+    prevMouseRef.current.y = simHeight / 2;
+
 
     const renderTargetOptions = {
       format: THREE.RGBAFormat,
@@ -91,6 +96,7 @@ const FluidCanvas: React.FC = () => {
       uniforms: {
         u_texture_input: { value: rtaRef.current.texture },
         u_mouse: { value: mouseRef.current },
+        u_mouse_prev: { value: prevMouseRef.current }, // Pass previous mouse position
         u_resolution: { value: new THREE.Vector2(simWidth, simHeight) },
         u_time: { value: 0.0 },
         u_frame: { value: 0 },
@@ -154,9 +160,13 @@ const FluidCanvas: React.FC = () => {
 
     const handleMouseMove = (event: MouseEvent) => {
       if (rendererRef.current) {
+        // Store current mouse as previous before updating
+        prevMouseRef.current.x = mouseRef.current.x;
+        prevMouseRef.current.y = mouseRef.current.y;
+
         const dpr = rendererRef.current.getPixelRatio();
         mouseRef.current.x = event.clientX * dpr;
-        mouseRef.current.y = (window.innerHeight - event.clientY) * dpr; 
+        mouseRef.current.y = (window.innerHeight - event.clientY) * dpr;
       }
     };
     const handleMouseDown = () => { mouseRef.current.z = 1.0; };
@@ -166,6 +176,9 @@ const FluidCanvas: React.FC = () => {
         const leaveX = window.innerWidth * dpr / 2;
         const leaveY = window.innerHeight * dpr / 2;
         
+        // Capture last position before leave
+        prevMouseRef.current.x = mouseRef.current.x;
+        prevMouseRef.current.y = mouseRef.current.y;
         mouseRef.current.x = leaveX; 
         mouseRef.current.y = leaveY;
         mouseRef.current.z = 0.0; 
@@ -188,11 +201,14 @@ const FluidCanvas: React.FC = () => {
       frameRef.current++;
       const elapsedTime = clock.getElapsedTime();
 
+      // Update simulation uniforms
       simulationMaterialRef.current.uniforms.u_time.value = elapsedTime;
       simulationMaterialRef.current.uniforms.u_frame.value = frameRef.current;
       simulationMaterialRef.current.uniforms.u_mouse.value = mouseRef.current;
+      simulationMaterialRef.current.uniforms.u_mouse_prev.value = prevMouseRef.current;
       simulationMaterialRef.current.uniforms.u_texture_input.value = rtaRef.current.texture;
 
+      // Render simulation to rtb
       rendererRef.current.setRenderTarget(rtbRef.current);
       rendererRef.current.render(simSceneRef.current, cameraRef.current);
       rendererRef.current.setRenderTarget(null);
